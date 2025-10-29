@@ -1,8 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
     const logEl = document.getElementById('log');
-    const keywordsInput = document.getElementById('keywords');
-    const separatorInput = document.getElementById('separator');
-    const scrapBtn = document.getElementById('scrapBtn');
     const resultsDiv = document.getElementById('results');
 
     // GANTI DENGAN INFORMASI REPOSITORY ANDA
@@ -11,48 +8,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let pollingInterval;
 
-    function log(message) {
-        logEl.textContent += message + '\n';
-        logEl.scrollTop = logEl.scrollHeight;
-    }
-
-    // FUNGSI INI YANG BERUBAH TOTAL
-    async function triggerScraping(keywords, separator) {
-        log(`[API] Mengirim permintaan ke server GitHub...`);
-        const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/trigger-scraper.yml/dispatches`, {
-            method: 'POST',
-            headers: {
-                'Accept': 'application/vnd.github.v3+json',
-                'Content-Type': 'application/json',
-                // Tidak perlu Authorization token untuk public repo!
-            },
-            body: JSON.stringify({
-                ref: 'main', // atau 'master', sesuai branch Anda
-                inputs: {
-                    keywords: keywords,
-                    separator: separator
-                }
-            })
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(`Gagal memicu workflow: ${error.message}`);
-        }
-        
-        log('[API] Permintaan diterima. Proses scraping akan dimulai sebentar lagi.');
-        // Beri jeda beberapa detik agar workflow "pemicu" punya waktu untuk membuat issue
-        setTimeout(() => {
-            log('[MONITOR] Memulai pemantauan log...');
-            startMonitoring();
-        }, 5000); // Tunggu 5 detik
-    }
-
     function startMonitoring() {
         if (pollingInterval) clearInterval(pollingInterval);
 
         pollingInterval = setInterval(async () => {
             try {
+                // Cek log.txt untuk menampilkan proses
                 const logResponse = await fetch('./log.txt?t=' + new Date().getTime());
                 if (logResponse.ok) {
                     const logText = await logResponse.text();
@@ -60,18 +21,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     logEl.scrollTop = logEl.scrollHeight;
                 }
 
+                // Cek apakah hasil sudah ada
                 const domainsResponse = await fetch('./data/domains.json?t=' + new Date().getTime());
                 if (domainsResponse.ok) {
-                    log('[SUCCESS] Scraping selesai. Menampilkan hasil.');
                     clearInterval(pollingInterval);
-                    scrapBtn.disabled = false;
-                    scrapBtn.textContent = 'EXECUTE_SCRAPER.SH';
                     displayResults();
                 }
             } catch (error) {
-                // Abaikan error saat file belum ada
+                // Abaikan error jika file belum ada
             }
-        }, 5000); // Cek setiap 5 detik
+        }, 3000); // Cek setiap 3 detik
     }
 
     async function displayResults() {
@@ -104,34 +63,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             resultsDiv.style.display = 'block';
         } catch (error) {
-            log(`[ERROR] Gagal menampilkan hasil: ${error.message}`);
+            console.error("Gagal menampilkan hasil:", error);
         }
     }
 
-    scrapBtn.addEventListener('click', async () => {
-        const keywords = keywordsInput.value;
-        const separator = separatorInput.value || ',';
-
-        if (!keywords) {
-            log('[ERROR] Kata kunci tidak boleh kosong.');
-            return;
-        }
-
-        scrapBtn.disabled = true;
-        scrapBtn.textContent = 'RUNNING...';
-        resultsDiv.style.display = 'none';
-        logEl.textContent = '';
-
-        try {
-            await triggerScraping(keywords, separator);
-        } catch (error) {
-            log(`[ERROR] ${error.message}`);
-            scrapBtn.disabled = false;
-            scrapBtn.textContent = 'EXECUTE_SCRAPER.SH';
-        }
-    });
-
-    // ... (sisa kode untuk tab dan download tidak berubah)
+    // Tab functionality
     const tabButtons = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
 
@@ -145,6 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Download functionality
     const downloadButtons = document.querySelectorAll('.download-btn');
     downloadButtons.forEach(button => {
         button.addEventListener('click', () => {
@@ -152,4 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = `./data/${target}.json`;
         });
     });
+
+    // Mulai memantau saat halaman dimuat
+    startMonitoring();
 });
