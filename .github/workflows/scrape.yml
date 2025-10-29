@@ -1,0 +1,68 @@
+name: Run Scraper from Issue
+
+# Trigger: Jalankan ketika issue baru dibuka
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Untuk commit hasil
+      issues: write   # Untuk menutup issue
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: pip install duckduckgo-search
+
+    # Baca kata kunci dari judul issue
+    - name: Parse inputs from issue
+      id: vars
+      run: |
+        title="${{ github.event.issue.title }}"
+        # Ambil separator dari body issue, default koma
+        separator=$(echo "${{ github.event.issue.body }}" | grep -oP '(?<=Separator: )\S+' || echo ",")
+        echo "keywords=$title" >> $GITHUB_OUTPUT
+        echo "separator=$separator" >> $GITHUB_OUTPUT
+
+    - name: Run scraper script
+      run: |
+        echo "Starting scrape for keywords: ${{ steps.vars.outputs.keywords }}" > log.txt
+        python scraper.py --keywords "${{ steps.vars.outputs.keywords }}" --separator "${{ steps.vars.outputs.separator }}" >> log.txt 2>&1
+
+    - name: Commit and push results
+      env:
+        TOKEN: ${{ secrets.SCRAPER_TOKEN }}
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add data/domains.json data/urls.json log.txt
+        git diff --staged --quiet || git commit -m "Update scraping results"
+        git push https://salman-mustapa:$TOKEN@github.com/salman-mustapa/domain-scrapping.git
+
+    - name: Close issue
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '✅ Scraping selesai! Hasil telah diperbarui. Issue ini akan ditutup otomatis.'
+          });
+          github.rest.issues.update({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            state: 'closed'
+          });

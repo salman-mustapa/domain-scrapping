@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>[SCRAPER.EXE]</title>
+    <link rel="stylesheet" href="./style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="terminal">
+        <div class="header">
+            <div class="buttons"><span class="button close"></span><span class="button minimize"></span><span class="button maximize"></span></div>
+            <div class="title">root@scraper:~$</div>
+        </div>
+        <div class="content">
+            <pre id="log">[SYSTEM] Initializing...
+[SYSTEM] Ready. Awaiting command.
+            </pre>
+            
+            <div class="input-area">
+                <span>[KEYWORDS]</span>
+                <input type="text" id="keywords" placeholder="e.g., gorontalo,berita,news">
+            </div>
+            <div class="input-area">
+                <span>[SEPARATOR]</span>
+                <input type="text" id="separator" placeholder="e.g., ," value=",">
+            </div>
+            <button id="scrapBtn" class="button-run">EXECUTE_SCRAPER.SH</button>
+
+            <div id="results" style="display: none;">
+                <hr>
+                <h2>[RESULTS]</h2>
+                <div class="result-stats">
+                    <p>Unique Domains Found: <span id="domainCount">0</span></p>
+                    <p>Total URLs Scraped: <span id="urlCount">0</span></p>
+                </div>
+                
+                <div class="tabs">
+                    <button class="tab-button active" data-tab="domains">DOMAINS</button>
+                    <button class="tab-button" data-tab="urls">FULL URLS</button>
+                </div>
+
+                <div id="domains" class="tab-content active">
+                    <button class="download-btn" data-target="domains">DOWNLOAD DOMAINS.JSON</button>
+                    <ul id="domainList"></ul>
+                </div>
+                <div id="urls" class="tab-content">
+                    <button class="download-btn" data-target="urls">DOWNLOAD URLS.JSON</button>
+                    <ul id="urlList"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="./script.js"></script>
+</body>
+</html> 
