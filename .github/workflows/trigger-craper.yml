@@ -1,0 +1,35 @@
+name: Trigger Scraper
+
+# Workflow ini dipicu secara manual via API dari halaman web
+on:
+  workflow_dispatch:
+    inputs:
+      keywords:
+        description: 'Kata kunci untuk di-scrap'
+        required: true
+      separator:
+        description: 'Pemisah kata kunci'
+        required: true
+        default: ','
+
+jobs:
+  create_issue:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write # Perlu izin untuk membuat issue
+
+    steps:
+    - name: Create an Issue to trigger the main scraper
+      uses: actions/github-script@v7
+      with:
+        # Gunakan token khusus untuk GITHUB_TOKEN, yang memiliki izin terbatas dan aman
+        github-token: ${{ secrets.SCRAPER_TOKEN }}
+        script: |
+          github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: `${{ github.event.inputs.keywords }}`,
+            body: `Separator: ${{ github.event.inputs.separator }}`,
+            labels: ['scrap-request']
+          });

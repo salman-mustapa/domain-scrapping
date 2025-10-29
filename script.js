@@ -16,32 +16,39 @@ document.addEventListener('DOMContentLoaded', () => {
         logEl.scrollTop = logEl.scrollHeight;
     }
 
+    // FUNGSI INI YANG BERUBAH TOTAL
     async function triggerScraping(keywords, separator) {
-        log(`[API] Membuat issue baru untuk memicu scraping...`);
-        const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues`, {
+        log(`[API] Mengirim permintaan ke server GitHub...`);
+        const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/trigger-scraper.yml/dispatches`, {
             method: 'POST',
             headers: {
                 'Accept': 'application/vnd.github.v3+json',
                 'Content-Type': 'application/json',
+                // Tidak perlu Authorization token untuk public repo!
             },
             body: JSON.stringify({
-                title: keywords,
-                body: `Separator: ${separator}`,
-                labels: ['scrap-request']
+                ref: 'main', // atau 'master', sesuai branch Anda
+                inputs: {
+                    keywords: keywords,
+                    separator: separator
+                }
             })
         });
 
         if (!response.ok) {
             const error = await response.json();
-            throw new Error(`Gagal membuat issue: ${error.message}`);
+            throw new Error(`Gagal memicu workflow: ${error.message}`);
         }
-        const issue = await response.json();
-        log(`[API] Issue #${issue.number} berhasil dibuat. Memantau proses...`);
-        startMonitoring();
+        
+        log('[API] Permintaan diterima. Proses scraping akan dimulai sebentar lagi.');
+        // Beri jeda beberapa detik agar workflow "pemicu" punya waktu untuk membuat issue
+        setTimeout(() => {
+            log('[MONITOR] Memulai pemantauan log...');
+            startMonitoring();
+        }, 5000); // Tunggu 5 detik
     }
 
     function startMonitoring() {
-        log('[MONITOR] Memulai pemantauan log...');
         if (pollingInterval) clearInterval(pollingInterval);
 
         pollingInterval = setInterval(async () => {
@@ -124,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Tab functionality
+    // ... (sisa kode untuk tab dan download tidak berubah)
     const tabButtons = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
 
@@ -138,7 +145,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Download functionality
     const downloadButtons = document.querySelectorAll('.download-btn');
     downloadButtons.forEach(button => {
         button.addEventListener('click', () => {
